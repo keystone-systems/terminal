@@ -1,0 +1,16 @@
+// Rosé Pine Dawn palette. Zellij v0.44.3 does not include Rosé Pine.
+themes {
+    current {
+        fg "#575279"
+        bg "#fffaf3"
+        black "#575279"
+        red "#b4637a"
+        green "#d7827e"
+        yellow "#ea9d34"
+        blue "#286983"
+        magenta "#907aa9"
+        cyan "#56949f"
+        white "#fffaf3"
+        orange "#d7827e"
+    }
+}

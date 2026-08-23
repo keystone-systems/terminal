@@ -1,0 +1,218 @@
+[[language]]
+auto-format = true
+language-servers = ["harper-ls"]
+name = "nix"
+
+[language.formatter]
+command = "nixfmt"
+
+[[language]]
+language-servers = ["bash-language-server", "harper-ls"]
+name = "bash"
+
+[[language]]
+language-servers = ["yaml-language-server"]
+name = "yaml"
+
+[[language]]
+language-servers = ["dockerfile-language-server"]
+name = "dockerfile"
+
+[[language]]
+language-servers = ["docker-compose-language-service", "yaml-language-server"]
+name = "docker-compose"
+
+[[language]]
+language-servers = ["vscode-json-language-server"]
+name = "json"
+
+[[language]]
+language-servers = ["vscode-json-language-server"]
+name = "json5"
+
+[[language]]
+language-servers = ["vscode-css-language-server"]
+name = "css"
+
+[[language]]
+language-servers = ["vscode-html-language-server", "harper-ls"]
+name = "html"
+
+[[language]]
+auto-format = true
+language-servers = ["typescript-language-server", "harper-ls"]
+name = "typescript"
+
+[language.formatter]
+args = ["--parser", "typescript"]
+command = "prettier"
+
+[[language]]
+language-servers = ["helm-ls"]
+name = "helm"
+
+[[language]]
+language-servers = ["ruby-lsp", "solargraph", "harper-ls"]
+name = "ruby"
+
+[[language]]
+auto-format = true
+language-servers = ["marksman", "zk-lsp", "harper-ls"]
+name = "markdown"
+
+[language.formatter]
+args = ["--parser", "markdown"]
+command = "prettier"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "c"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "cmake"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "cpp"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "c-sharp"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "dart"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "git-commit"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "go"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "haskell"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "java"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "javascript"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "jsx"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "lua"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "php"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "python"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "rust"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "scala"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "solidity"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "swift"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "toml"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "tsx"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "typst"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "kotlin"
+
+[[language]]
+language-servers = ["harper-ls"]
+name = "clojure"
+
+[language-server.bash-language-server]
+args = ["start"]
+command = "bash-language-server"
+
+[language-server.docker-compose-language-service]
+args = ["--stdio"]
+command = "docker-compose-langserver"
+
+[language-server.dockerfile-language-server]
+args = ["--stdio"]
+command = "docker-langserver"
+
+[language-server.harper-ls]
+args = ["--stdio"]
+command = "harper-ls"
+
+[language-server.helm-ls]
+args = ["serve"]
+command = "helm_ls"
+
+[language-server.marksman]
+args = ["server"]
+command = "marksman"
+
+[language-server.ruby-lsp]
+command = "ruby-lsp"
+
+[language-server.solargraph]
+args = ["stdio"]
+command = "solargraph"
+
+[language-server.typescript-language-server]
+args = ["--stdio"]
+command = "typescript-language-server"
+
+[language-server.typescript-language-server.config]
+documentFormatting = false
+
+[language-server.typescript-language-server.config.tsserver]
+path = "./node_modules/typescript/lib"
+
+[language-server.vscode-css-language-server]
+args = ["--stdio"]
+command = "vscode-css-language-server"
+
+[language-server.vscode-html-language-server]
+args = ["--stdio"]
+command = "vscode-html-language-server"
+
+[language-server.vscode-json-language-server]
+args = ["--stdio"]
+command = "vscode-json-language-server"
+
+[language-server.yaml-language-server]
+args = ["--stdio"]
+command = "yaml-language-server"
+
+[language-server.zk-lsp]
+args = ["lsp"]
+command = "zk"

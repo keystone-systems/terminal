@@ -1,0 +1,9 @@
+gui:
+  theme:
+    activeBorderColor: ["#d7827e", bold]
+    inactiveBorderColor: ["#575279"]
+    optionsTextColor: ["#286983"]
+    selectedLineBgColor: ["#fffaf3"]
+    defaultFgColor: ["#575279"]
+authorColors:
+  "*": "#d7827e"

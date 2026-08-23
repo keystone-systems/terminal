@@ -1,0 +1,38 @@
+; Ported from ks-config Home Manager. Edit directly; Stow links this file.
+[user]
+	name = Nicholas Romero
+	email = ncrmro@gmail.com
+	signingkey = ~/.ssh/id_ed25519
+
+[credential]
+	helper = store
+
+[push]
+	autoSetupRemote = true
+
+[commit]
+	gpgsign = true
+
+[gpg]
+	format = ssh
+
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
+[alias]
+	b = branch
+	p = pull
+	co = checkout
+	c = commit
+	ci = commit -a
+	a = add
+	st = status -sb
+	s = switch
+	f = fetch
+	rff = reset --force
+
+[includeIf "gitdir:~/code/unsupervised/"]
+	path = ~/code/unsupervised/.gitconfig

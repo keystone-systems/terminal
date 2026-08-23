@@ -1,0 +1,3 @@
+{
+  imports = [ ./terminal/default.nix ];
+}

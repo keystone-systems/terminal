@@ -1,0 +1,43 @@
+keybinds {
+	normal {
+		bind "Ctrl ," {
+			GoToPreviousTab
+		}
+		bind "Ctrl ." {
+			GoToNextTab
+		}
+		bind "Ctrl <" {
+			MoveTab "Left"
+		}
+		bind "Ctrl >" {
+			MoveTab "Right"
+		}
+		bind "Ctrl PageDown" {
+			GoToNextTab
+		}
+		bind "Ctrl PageUp" {
+			GoToPreviousTab
+		}
+		bind "Ctrl Shift g" {
+			SwitchToMode "locked"
+		}
+		bind "Ctrl Shift o" {
+			SwitchToMode "session"
+		}
+		bind "Ctrl t" {
+			Run "keystone-zellij-new-tab-prompt" {
+				close_on_exit true
+				floating true
+			}
+		}
+		bind "Ctrl w" {
+			CloseTab
+		}
+		unbind "Ctrl g" 
+		unbind "Ctrl o" 
+	}
+}
+pane_frames false
+startup_tips false
+support_kitty_keyboard_protocol true
+theme "current"
