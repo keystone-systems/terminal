@@ -112,7 +112,7 @@ compose_theme() {
         mkdir -p "$destination"
       else
         mkdir -p "$(dirname "$destination")"
-        cp -L -- "$source" "$destination" \
+        cp -fL -- "$source" "$destination" \
           || fail "Could not materialize theme path: $relative"
       fi
     done < <(find -L "$catalog/$theme" -mindepth 1 -print0 | LC_ALL=C sort -z)
@@ -177,7 +177,7 @@ run_hooks() {
 restore_generation() {
   local old_path="$1" temporary="$2"
   if [[ -n "$old_path" ]]; then
-    ln -s "$old_path" "$temporary"
+    ln -sfn "$old_path" "$temporary"
     mv -Tf "$temporary" "$current_theme"
   else
     rm -f "$current_theme"
@@ -195,7 +195,7 @@ activate_generation() {
   fi
   validate_adapters
   temporary="$themes_state/.current.$$"
-  ln -s "$generation" "$temporary"
+  ln -sfn "$generation" "$temporary"
   mv -Tf "$temporary" "$current_theme"
   if ! link_adapters; then
     restore_generation "$old_path" "$temporary"

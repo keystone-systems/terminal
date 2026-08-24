@@ -51,6 +51,7 @@ pkgs.runCommand "terminal-theme-selector"
         mkdir -p "$root/base/tokyo-night/backgrounds" "$root/overlay/tokyo-night"
         printf base > "$root/base/tokyo-night/backgrounds/a.jpg"
         printf override > "$root/overlay/tokyo-night/btop.theme"
+        find "$root/base" "$root/overlay" -type f -exec chmod 444 {} +
 
       echo "TEST layered selection"
       run_selector "$root" select tokyo-night
