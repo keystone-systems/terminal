@@ -61,6 +61,7 @@ in
     keystone-conventions = final.callPackage ../packages/keystone-conventions {
       keystone-src = self;
     };
+    theme-selector = final.callPackage ../packages/theme-selector.nix { };
     podman-agent = final.callPackage ../packages/podman-agent { };
     zesh = final.callPackage ../packages/zesh { inherit craneLib; };
     zide = final.callPackage ../packages/zide { };

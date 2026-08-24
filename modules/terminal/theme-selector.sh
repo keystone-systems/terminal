@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: keystone-theme-selector <list-json|reconcile DEFAULT_THEME|select THEME|refresh>" >&2
+  echo "Usage: keystone-theme-selector <current|list-json|reconcile DEFAULT_THEME|select THEME|refresh>" >&2
 }
 
 fail() {
@@ -10,17 +10,19 @@ fail() {
   exit 1
 }
 
-config_home="${KEYSTONE_CONFIG_HOME:-${XDG_CONFIG_HOME:-$HOME/.config}}"
 state_home="${KEYSTONE_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}}"
 themes_state="$state_home/keystone/themes"
 generations="$themes_state/generations"
 current_theme="$themes_state/current"
-required_paths="${KEYSTONE_THEME_REQUIRED_PATHS:-zellij.kdl:helix.toml:btop.theme:lazygit.yml}"
+required_paths="${KEYSTONE_THEME_REQUIRED_PATHS-zellij.kdl:helix.toml:btop.theme:lazygit.yml}"
 catalog_spec="${KEYSTONE_THEME_CATALOGS:-}"
 hook_spec="${KEYSTONE_THEME_HOOKS:-}"
+adapter_spec="${KEYSTONE_THEME_ADAPTERS:-}"
 
 declare -a catalog_names=()
 declare -a catalog_paths=()
+declare -a adapter_sources=()
+declare -a adapter_targets=()
 
 valid_name() {
   [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$1" != current ]]
@@ -36,6 +38,17 @@ load_catalogs() {
     catalog_names+=("$name")
     catalog_paths+=("${path%/}")
   done <<< "$catalog_spec"
+}
+
+load_adapters() {
+  local source target
+  [[ -n "$adapter_spec" ]] || fail "No theme adapters are configured"
+  while IFS=$'\t' read -r source target; do
+    [[ -n "$source" && -n "$target" ]] || fail "Theme adapter entries must contain a source and target"
+    [[ "$source" != /* && "$source" != *..* ]] || fail "Theme adapter source is not valid: $source"
+    adapter_sources+=("$source")
+    adapter_targets+=("$target")
+  done <<< "$adapter_spec"
 }
 
 available_themes() {
@@ -104,7 +117,9 @@ compose_theme() {
   done
 
   IFS=: read -r -a paths <<< "$required_paths"
+  paths+=("${adapter_sources[@]}")
   for relative in "${paths[@]}"; do
+    [[ "$relative" != "." ]] || continue
     [[ -n "$relative" ]] || fail "Required theme paths MUST NOT contain empty entries"
     [[ -e "$generation/$relative" ]] || fail "Theme does not contain required path $relative: $theme"
     if [[ -d "$generation/$relative" ]]; then
@@ -121,41 +136,30 @@ compose_theme() {
     [[ -z "$background" ]] || background="backgrounds/$background"
   fi
   jq -n --arg theme "$theme" --arg background "$background" \
-    --argjson catalogs "$(printf '%s\n' "${used_catalogs[@]}" | jq -R . | jq -s .)" \
+    --argjson catalogs "$(printf '%s\n' "${used_catalogs[@]}" | jq -Rsc 'split("\n")[:-1]')" \
     '{theme:$theme,catalogs:$catalogs,background:$background}' > "$generation/.keystone-theme.json"
   printf '%s\n' "$generation"
 }
 
 validate_adapters() {
   local path
-  while IFS= read -r path; do
-    [[ -n "$path" ]] || continue
+  for path in "${adapter_targets[@]}"; do
     if [[ ( -e "$path" || -L "$path" ) && ! -L "$path" ]]; then
       fail "Theme adapter must be a symbolic link: $path"
     fi
     mkdir -p "$(dirname "$path")"
-  done <<EOF
-$config_home/zellij/themes/current.kdl
-$config_home/helix/themes/current.toml
-$config_home/btop/themes/current.theme
-$config_home/keystone/lazygit/current.yml
-$config_home/themes/current
-EOF
+  done
 }
 
 link_adapters() {
-  local path target
-  while IFS=$'\t' read -r path target; do
-    [[ -n "$path" ]] || continue
-    ln -sfn "$target" "$path" || return 1
-  done <<EOF
-$config_home/zellij/themes/current.kdl	$current_theme/zellij.kdl
-$config_home/helix/themes/current.toml	$current_theme/helix.toml
-$config_home/btop/themes/current.theme	$current_theme/btop.theme
-$config_home/keystone/lazygit/current.yml	$current_theme/lazygit.yml
-EOF
-  path="$config_home/themes/current"
-  ln -sfn "$current_theme" "$path" || return 1
+  local i
+  for ((i=0; i<${#adapter_sources[@]}; i++)); do
+    if [[ "${adapter_sources[$i]}" == "." ]]; then
+      ln -sfn "$current_theme" "${adapter_targets[$i]}" || return 1
+    else
+      ln -sfn "$current_theme/${adapter_sources[$i]}" "${adapter_targets[$i]}" || return 1
+    fi
+  done
 }
 
 run_hooks() {
@@ -165,6 +169,17 @@ run_hooks() {
     [[ -n "$hook" ]] || continue
     "$hook/bin/keystone-theme-hook" "$theme" "$path"
   done <<< "$hook_spec"
+}
+
+restore_generation() {
+  local old_path="$1" temporary="$2"
+  if [[ -n "$old_path" ]]; then
+    ln -s "$old_path" "$temporary"
+    mv -Tf "$temporary" "$current_theme"
+  else
+    rm -f "$current_theme"
+  fi
+  link_adapters || true
 }
 
 activate_generation() {
@@ -180,23 +195,11 @@ activate_generation() {
   ln -s "$generation" "$temporary"
   mv -Tf "$temporary" "$current_theme"
   if ! link_adapters; then
-    if [[ -n "$old_path" ]]; then
-      ln -s "$old_path" "$temporary"
-      mv -Tf "$temporary" "$current_theme"
-    else
-      rm -f "$current_theme"
-    fi
-    link_adapters || true
+    restore_generation "$old_path" "$temporary"
     fail "A theme adapter could not be installed; restored the previous theme"
   fi
   if ! run_hooks "$theme" "$generation"; then
-    if [[ -n "$old_path" ]]; then
-      ln -s "$old_path" "$temporary"
-      mv -Tf "$temporary" "$current_theme"
-    else
-      rm -f "$current_theme"
-    fi
-    link_adapters || true
+    restore_generation "$old_path" "$temporary"
     if [[ -n "$old_path" ]]; then run_hooks "$old_theme" "$old_path" || true; fi
     fail "A post-switch hook failed; restored the previous theme"
   fi
@@ -227,10 +230,13 @@ list_json() {
   local current="" theme themes
   if [[ -L "$current_theme" ]]; then current="$(metadata_value "$(readlink -f "$current_theme")" theme || true)"; fi
   themes="$(available_themes)" || return 1
-  while IFS= read -r theme; do
-    [[ -n "$theme" ]] || continue
-    jq -nc --arg name "$theme" --arg current "$current" '{name:$name,current:($name == $current)}'
-  done <<< "$themes" | jq -sc '{themes:.}'
+  printf '%s\n' "$themes" | jq -Rsc --arg current "$current" \
+    '{themes:(split("\n") | map(select(length > 0) | {name:.,current:(. == $current)}))}'
+}
+
+current_theme_name() {
+  [[ -L "$current_theme" ]] || fail "No current theme is selected"
+  metadata_value "$(readlink -f "$current_theme")" theme
 }
 
 reconcile_theme() {
@@ -252,7 +258,9 @@ reconcile_theme() {
 }
 
 load_catalogs
+load_adapters
 case "${1:-}" in
+  current) [[ $# -eq 1 ]] || { usage; exit 2; }; current_theme_name ;;
   list-json) [[ $# -eq 1 ]] || { usage; exit 2; }; list_json ;;
   reconcile) [[ $# -eq 2 ]] || { usage; exit 2; }; reconcile_theme "$2" ;;
   select) [[ $# -eq 2 ]] || { usage; exit 2; }; select_theme "$2" ;;

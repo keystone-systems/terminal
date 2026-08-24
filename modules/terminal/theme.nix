@@ -9,57 +9,39 @@ let
   cfg = config.keystone.terminal;
   themeCfg = cfg.theme;
   requiredPaths = lib.concatStringsSep ":" themeCfg.requiredPaths;
+  adapters = lib.concatMapStringsSep "\n" (
+    adapter: "${adapter.source}\t${adapter.target}"
+  ) themeCfg.adapters;
   catalogs = lib.concatMapStringsSep "\n" (
     catalog: "${catalog.name}\t${toString catalog.path}"
   ) themeCfg.catalogs;
   hooks = lib.concatStringsSep "\n" (map toString themeCfg.postSwitchHooks);
-  selector = pkgs.writeShellApplication {
-    name = "keystone-theme-selector";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.findutils
-      pkgs.gnugrep
-      pkgs.jq
-    ];
-    text = builtins.readFile ./theme-selector.sh;
-  };
+  selector = pkgs.keystone-terminal.theme-selector;
   switch = pkgs.writeShellApplication {
     name = "keystone-theme-switch";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.jq
-    ];
+    runtimeInputs = [ pkgs.jq ];
     text = ''
-      if [ "$#" -eq 0 ]; then
-        echo "Available themes:"
-        KEYSTONE_CONFIG_HOME="${config.xdg.configHome}" KEYSTONE_STATE_HOME="${config.xdg.stateHome}" \
-          KEYSTONE_THEME_CATALOGS="${catalogs}" ${selector}/bin/keystone-theme-selector list-json \
-          | ${pkgs.jq}/bin/jq -r '.themes[] | "  \(.name)" + (if .current then " *" else "" end)'
-        exit 0
-      fi
-      if [ "$#" -eq 2 ] && [ "$1" = "--list" ] && [ "$2" = "--json" ]; then
-        KEYSTONE_CONFIG_HOME="${config.xdg.configHome}" KEYSTONE_STATE_HOME="${config.xdg.stateHome}" \
-          KEYSTONE_THEME_CATALOGS="${catalogs}" ${selector}/bin/keystone-theme-selector list-json
-        exit 0
-      fi
-      if [ "$#" -eq 1 ] && [ "$1" = "--refresh" ]; then
-        KEYSTONE_CONFIG_HOME="${config.xdg.configHome}" KEYSTONE_STATE_HOME="${config.xdg.stateHome}" \
-          KEYSTONE_THEME_CATALOGS="${catalogs}" KEYSTONE_THEME_REQUIRED_PATHS="${requiredPaths}" \
-          KEYSTONE_THEME_HOOKS="${hooks}" ${selector}/bin/keystone-theme-selector refresh
-        exit 0
-      fi
-      if [ "$#" -ne 1 ]; then
-        echo "Usage: keystone-theme-switch <theme-name>" >&2
-        exit 2
-      fi
-      theme="$1"
-      KEYSTONE_CONFIG_HOME="${config.xdg.configHome}" \
-        KEYSTONE_STATE_HOME="${config.xdg.stateHome}" \
-        KEYSTONE_THEME_CATALOGS="${catalogs}" \
-        KEYSTONE_THEME_REQUIRED_PATHS="${requiredPaths}" \
-        KEYSTONE_THEME_HOOKS="${hooks}" \
-        ${selector}/bin/keystone-theme-selector select "$theme"
-      echo "Switched to theme: $theme"
+      export KEYSTONE_STATE_HOME="${config.xdg.stateHome}"
+      export KEYSTONE_THEME_CATALOGS="${catalogs}"
+      export KEYSTONE_THEME_REQUIRED_PATHS="${requiredPaths}"
+      export KEYSTONE_THEME_ADAPTERS="${adapters}"
+      export KEYSTONE_THEME_HOOKS="${hooks}"
+
+      case "$#:$*" in
+        "0:")
+          echo "Available themes:"
+          ${selector}/bin/keystone-theme-selector list-json \
+            | jq -r '.themes[] | "  \(.name)" + (if .current then " *" else "" end)'
+          ;;
+        "2:--list --json") ${selector}/bin/keystone-theme-selector list-json ;;
+        "1:--current") ${selector}/bin/keystone-theme-selector current ;;
+        "1:--refresh") ${selector}/bin/keystone-theme-selector refresh ;;
+        1:*)
+          ${selector}/bin/keystone-theme-selector select "$1"
+          echo "Switched to theme: $1"
+          ;;
+        *) echo "Usage: keystone-theme-switch [--list --json|--current|--refresh|<theme-name>]" >&2; exit 2 ;;
+      esac
     '';
   };
 in
@@ -72,13 +54,20 @@ in
     };
     requiredPaths = mkOption {
       type = types.listOf types.str;
-      default = [
-        "zellij.kdl"
-        "helix.toml"
-        "btop.theme"
-        "lazygit.yml"
-      ];
-      description = "Files that every selectable theme MUST provide.";
+      default = [ ];
+      description = "Validation-only paths that every selectable theme MUST provide.";
+    };
+    adapters = mkOption {
+      type = types.listOf (
+        types.submodule {
+          options = {
+            source = mkOption { type = types.str; };
+            target = mkOption { type = types.str; };
+          };
+        }
+      );
+      default = [ ];
+      description = "Theme-generation sources and the adapter links that consume them.";
     };
     catalogs = mkOption {
       type = types.listOf (
@@ -105,13 +94,35 @@ in
   };
 
   config = mkIf cfg.enable {
+    keystone.terminal.theme.adapters = lib.mkBefore [
+      {
+        source = "zellij.kdl";
+        target = "${config.xdg.configHome}/zellij/themes/current.kdl";
+      }
+      {
+        source = "helix.toml";
+        target = "${config.xdg.configHome}/helix/themes/current.toml";
+      }
+      {
+        source = "btop.theme";
+        target = "${config.xdg.configHome}/btop/themes/current.theme";
+      }
+      {
+        source = "lazygit.yml";
+        target = "${config.xdg.configHome}/keystone/lazygit/current.yml";
+      }
+      {
+        source = ".";
+        target = "${config.xdg.configHome}/themes/current";
+      }
+    ];
     home.packages = [ switch ];
     home.sessionVariables.LG_CONFIG_FILE = "${config.xdg.configHome}/lazygit/config.yml,${config.xdg.configHome}/keystone/lazygit/current.yml";
     home.activation.keystoneTerminalTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      KEYSTONE_CONFIG_HOME="${config.xdg.configHome}" \
-        KEYSTONE_STATE_HOME="${config.xdg.stateHome}" \
+      KEYSTONE_STATE_HOME="${config.xdg.stateHome}" \
         KEYSTONE_THEME_CATALOGS="${catalogs}" \
         KEYSTONE_THEME_REQUIRED_PATHS="${requiredPaths}" \
+        KEYSTONE_THEME_ADAPTERS="${adapters}" \
         KEYSTONE_THEME_HOOKS="${hooks}" \
         ${selector}/bin/keystone-theme-selector reconcile "${themeCfg.name}"
     '';

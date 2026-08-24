@@ -62,11 +62,13 @@
       nixpkgsFor = system: if system == "x86_64-darwin" then nixpkgs-x86-darwin else nixpkgs;
       themeDirectory = builtins.readDir ./templates/themes/.config/themes;
       themeNames = builtins.attrNames (lib.filterAttrs (_: type: type == "directory") themeDirectory);
-      templateFiles = lib.filesystem.listFilesRecursive ./templates;
-      manifest = map (file: {
-        path = lib.removePrefix "${toString ./templates}/" (toString file);
-        executable = lib.hasInfix "/.local/bin/" (toString file);
-      }) templateFiles;
+      manifestFrom =
+        root:
+        map (file: {
+          path = lib.removePrefix "${toString root}/" (toString file);
+          executable = lib.hasInfix "/.local/bin/" (toString file);
+        }) (lib.filesystem.listFilesRecursive root);
+      manifest = manifestFrom ./templates;
     in
     {
       homeModules.default = ./modules/default.nix;
@@ -86,6 +88,7 @@
 
       lib = {
         dotfiles.manifest = manifest;
+        dotfiles.manifestFrom = manifestFrom;
         inherit themeNames;
         templatesPath = ./templates;
       };
@@ -168,28 +171,29 @@
               }
             ];
           };
-          selector = pkgs.writeShellApplication {
-            name = "keystone-theme-selector";
-            runtimeInputs = [
-              pkgs.coreutils
-              pkgs.findutils
-              pkgs.gnugrep
-              pkgs.jq
-            ];
-            text = builtins.readFile ./modules/terminal/theme-selector.sh;
-          };
+          selector = pkgs.keystone-terminal.theme-selector;
         in
         {
           theme-contract = pkgs.runCommand "terminal-theme-contract" { } ''
             for theme in ${lib.concatStringsSep " " themeNames}; do
               root=${./templates/themes/.config/themes}/"$theme"
-              for path in zellij.kdl helix.toml btop.theme lazygit.yml; do
+              for path in ${
+                lib.concatStringsSep " " (
+                  home.config.keystone.terminal.theme.requiredPaths
+                  ++ map (adapter: adapter.source) home.config.keystone.terminal.theme.adapters
+                )
+              }; do
+                [ "$path" = . ] && continue
                 test -s "$root/$path" || { echo "$theme lacks $path" >&2; exit 1; }
               done
             done
             touch $out
           '';
-          theme-selector = import ./tests/theme-selector.nix { inherit pkgs selector; };
+          theme-selector = import ./tests/theme-selector.nix {
+            inherit pkgs selector;
+            inherit (home.config.keystone.terminal.theme) adapters requiredPaths;
+            configHome = home.config.xdg.configHome;
+          };
         }
         // lib.optionalAttrs (system == "x86_64-linux") {
           home-standalone = home.activationPackage;
