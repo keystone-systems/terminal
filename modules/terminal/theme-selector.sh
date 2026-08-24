@@ -111,7 +111,7 @@ compose_theme() {
         mkdir -p "$destination"
       else
         mkdir -p "$(dirname "$destination")"
-        ln -sfn "$source" "$destination"
+        cp -L -- "$source" "$destination"
       fi
     done < <(find -L "$catalog/$theme" -mindepth 1 -print0 | LC_ALL=C sort -z)
   done

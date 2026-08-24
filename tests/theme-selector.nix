@@ -61,6 +61,16 @@ pkgs.runCommand "terminal-theme-selector"
         test "$(jq -r .background "$current/.keystone-theme.json")" = backgrounds/a.jpg
     test "$(readlink "$root/config/zellij/themes/current.kdl")" = "$root/state/keystone/themes/current/zellij.kdl"
     test "$(readlink "$root/config/themes/current")" = "$root/state/keystone/themes/current"
+    test ! -L "$current/zellij.kdl"
+
+      echo "TEST generation survives catalog removal"
+      cp -R "$root/base" "$root/base.saved"
+      cp -R "$root/overlay" "$root/overlay.saved"
+      rm -rf "$root/base" "$root/overlay"
+      test "$(cat "$root/config/zellij/themes/current.kdl")" = 'themes { current { fg "#fff" bg "#000" } }'
+      test "$(cat "$root/config/btop/themes/current.theme")" = override
+      mv "$root/base.saved" "$root/base"
+      mv "$root/overlay.saved" "$root/overlay"
 
       json="$(run_selector "$root" list-json)"
       test "$json" = '{"themes":[{"name":"kanagawa","current":false},{"name":"tokyo-night","current":true}]}'
