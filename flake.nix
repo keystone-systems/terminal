@@ -91,6 +91,14 @@
         dotfiles.manifestFrom = manifestFrom;
         inherit themeNames;
         templatesPath = ./templates;
+        sharedModules = {
+          experimental = ./modules/shared/experimental.nix;
+          repos = ./modules/shared/repos.nix;
+          update = ./modules/shared/update.nix;
+          password-managers = ./modules/shared/password-managers.nix;
+          system-flake = ./modules/shared/system-flake.nix;
+          dev-script-link = ./modules/shared/dev-script-link.nix;
+        };
       };
 
       packages = forAllSystems (
