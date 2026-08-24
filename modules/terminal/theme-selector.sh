@@ -86,6 +86,7 @@ compose_theme() {
   theme_exists "$theme" || fail "Theme does not exist in any catalog: $theme"
   mkdir -p "$generations"
   generation="$(mktemp -d "$generations/.${theme}.XXXXXX")"
+  trap 'rm -rf -- "$generation"' EXIT
 
   for ((i=0; i<${#catalog_paths[@]}; i++)); do
     catalog="${catalog_paths[$i]}"
@@ -111,7 +112,8 @@ compose_theme() {
         mkdir -p "$destination"
       else
         mkdir -p "$(dirname "$destination")"
-        cp -L -- "$source" "$destination"
+        cp -L -- "$source" "$destination" \
+          || fail "Could not materialize theme path: $relative"
       fi
     done < <(find -L "$catalog/$theme" -mindepth 1 -print0 | LC_ALL=C sort -z)
   done
@@ -138,6 +140,7 @@ compose_theme() {
   jq -n --arg theme "$theme" --arg background "$background" \
     --argjson catalogs "$(printf '%s\n' "${used_catalogs[@]}" | jq -Rsc 'split("\n")[:-1]')" \
     '{theme:$theme,catalogs:$catalogs,background:$background}' > "$generation/.keystone-theme.json"
+  trap - EXIT
   printf '%s\n' "$generation"
 }
 

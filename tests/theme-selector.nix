@@ -61,16 +61,16 @@ pkgs.runCommand "terminal-theme-selector"
         test "$(jq -r .background "$current/.keystone-theme.json")" = backgrounds/a.jpg
     test "$(readlink "$root/config/zellij/themes/current.kdl")" = "$root/state/keystone/themes/current/zellij.kdl"
     test "$(readlink "$root/config/themes/current")" = "$root/state/keystone/themes/current"
-    test ! -L "$current/zellij.kdl"
+      test -z "$(find "$current" -type l -print -quit)"
 
       echo "TEST generation survives catalog removal"
-      cp -R "$root/base" "$root/base.saved"
-      cp -R "$root/overlay" "$root/overlay.saved"
-      rm -rf "$root/base" "$root/overlay"
+      mv "$root/base" "$root/base.hidden"
+      mv "$root/overlay" "$root/overlay.hidden"
       test "$(cat "$root/config/zellij/themes/current.kdl")" = 'themes { current { fg "#fff" bg "#000" } }'
       test "$(cat "$root/config/btop/themes/current.theme")" = override
-      mv "$root/base.saved" "$root/base"
-      mv "$root/overlay.saved" "$root/overlay"
+      test "$(cat "$root/config/themes/current/backgrounds/a.jpg")" = base
+      mv "$root/base.hidden" "$root/base"
+      mv "$root/overlay.hidden" "$root/overlay"
 
       json="$(run_selector "$root" list-json)"
       test "$json" = '{"themes":[{"name":"kanagawa","current":false},{"name":"tokyo-night","current":true}]}'
@@ -146,11 +146,13 @@ pkgs.runCommand "terminal-theme-selector"
       echo "TEST incomplete theme"
       run_selector "$incomplete" select tokyo-night
         before="$(readlink -f "$incomplete/state/keystone/themes/current")"
+        generations_before="$(find "$incomplete/state/keystone/themes/generations" -mindepth 1 -maxdepth 1 -type d | wc -l)"
         if run_selector "$incomplete" select broken; then
           echo "FAIL: accepted an incomplete theme" >&2
           exit 1
         fi
         test "$(readlink -f "$incomplete/state/keystone/themes/current")" = "$before"
+        test "$(find "$incomplete/state/keystone/themes/generations" -mindepth 1 -maxdepth 1 -type d | wc -l)" = "$generations_before"
 
         conflict="$TMPDIR/conflict"
         mkdir -p "$conflict/base" "$conflict/overlay"
