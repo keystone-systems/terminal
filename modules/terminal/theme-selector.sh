@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: keystone-theme-selector <current|list-json|reconcile DEFAULT_THEME|select THEME|refresh>" >&2
+  echo "Usage: keystone-theme-selector <current|list-json|backgrounds-json|reconcile DEFAULT_THEME|select THEME|select-background BACKGROUND|refresh>" >&2
 }
 
 fail() {
@@ -242,6 +242,51 @@ current_theme_name() {
   metadata_value "$(readlink -f "$current_theme")" theme
 }
 
+current_theme_path() {
+  [[ -L "$current_theme" ]] || fail "No current theme is selected"
+  local path
+  path="$(readlink -f "$current_theme")" || return 1
+  [[ -d "$path" ]] || fail "Current theme is a broken symbolic link"
+  printf '%s\n' "$path"
+}
+
+backgrounds_json() {
+  local path theme current_background
+  path="$(current_theme_path)"
+  theme="$(metadata_value "$path" theme)" || return 1
+  current_background="$(metadata_value "$path" background || true)"
+
+  if [[ ! -d "$path/backgrounds" ]]; then
+    jq -n --arg theme "$theme" '{theme:$theme,backgrounds:[]}'
+    return 0
+  fi
+
+  find -L "$path/backgrounds" -type f -printf 'backgrounds/%P\n' \
+    | LC_ALL=C sort \
+    | jq -Rsc --arg theme "$theme" --arg current "$current_background" \
+      '{theme:$theme,backgrounds:(split("\n") | map(select(length > 0) | {path:.,current:(. == $current)}))}'
+}
+
+select_background() {
+  local background="$1" path old_background
+  path="$(current_theme_path)"
+  old_background="$(metadata_value "$path" background || true)"
+
+  [[ "$background" == backgrounds/* ]] || fail "Background must be inside backgrounds/: $background"
+  [[ "$background" != *"/../"* && "$background" != */.. ]] \
+    || fail "Background path must not escape backgrounds/: $background"
+  [[ -f "$path/$background" ]] || fail "Background does not exist in the current theme: $background"
+
+  jq --arg background "$background" '.background=$background' "$path/.keystone-theme.json" > "$path/.metadata.tmp"
+  mv "$path/.metadata.tmp" "$path/.keystone-theme.json"
+  if ! run_hooks "$(metadata_value "$path" theme)" "$path"; then
+    jq --arg background "$old_background" '.background=$background' "$path/.keystone-theme.json" > "$path/.metadata.tmp"
+    mv "$path/.metadata.tmp" "$path/.keystone-theme.json"
+    run_hooks "$(metadata_value "$path" theme)" "$path" || true
+    fail "A post-switch hook failed; restored the previous background"
+  fi
+}
+
 reconcile_theme() {
   local default_theme="$1" selected_path="" selected_theme=""
   if [[ -L "$current_theme" ]]; then
@@ -265,8 +310,10 @@ load_adapters
 case "${1:-}" in
   current) [[ $# -eq 1 ]] || { usage; exit 2; }; current_theme_name ;;
   list-json) [[ $# -eq 1 ]] || { usage; exit 2; }; list_json ;;
+  backgrounds-json) [[ $# -eq 1 ]] || { usage; exit 2; }; backgrounds_json ;;
   reconcile) [[ $# -eq 2 ]] || { usage; exit 2; }; reconcile_theme "$2" ;;
   select) [[ $# -eq 2 ]] || { usage; exit 2; }; select_theme "$2" ;;
+  select-background) [[ $# -eq 2 ]] || { usage; exit 2; }; select_background "$2" ;;
   refresh) [[ $# -eq 1 ]] || { usage; exit 2; }; refresh_theme ;;
   *) usage; exit 2 ;;
 esac

@@ -40,7 +40,9 @@ let
           ${selector}/bin/keystone-theme-selector select "$1"
           echo "Switched to theme: $1"
           ;;
-        *) echo "Usage: keystone-theme-switch [--list --json|--current|--refresh|<theme-name>]" >&2; exit 2 ;;
+        "2:--backgrounds --json") ${selector}/bin/keystone-theme-selector backgrounds-json ;;
+        "2:--background "*) ${selector}/bin/keystone-theme-selector select-background "$2" ;;
+        *) echo "Usage: keystone-theme-switch [--list --json|--backgrounds --json|--background PATH|--current|--refresh|<theme-name>]" >&2; exit 2 ;;
       esac
     '';
   };

@@ -32,10 +32,14 @@ and atomically switches `current`. The compatibility link
 ```sh
 keystone-theme-switch                 # human-readable sorted list
 keystone-theme-switch --list --json   # machine-readable list and current flag
+keystone-theme-switch --backgrounds --json # wallpapers in the current composed theme
+keystone-theme-switch --background backgrounds/2-example.jpg
 keystone-theme-switch --refresh       # recompose the current selection
 keystone-theme-switch tokyo-night
 ```
 
 Every generation includes `.keystone-theme.json` with its theme name,
-contributing catalogs, and selected background. A failing post-switch hook
-MUST restore the previous generation and rerun its hook on a best-effort basis.
+contributing catalogs, and selected background. Selecting a wallpaper changes
+only that metadata and runs the same post-switch hook as a theme change. A
+failing post-switch hook MUST restore the previous state and rerun its hook on
+a best-effort basis.

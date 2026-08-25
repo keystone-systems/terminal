@@ -77,12 +77,31 @@ pkgs.runCommand "terminal-theme-selector"
       test "$json" = '{"themes":[{"name":"kanagawa","current":false},{"name":"tokyo-night","current":true}]}'
       test "$(run_selector "$root" current)" = tokyo-night
 
-        printf second > "$root/base/tokyo-night/backgrounds/b.jpg"
+      echo "TEST independent background selection"
+      printf second > "$root/base/tokyo-night/backgrounds/b.jpg"
+      run_selector "$root" refresh
+      current="$(readlink -f "$root/state/keystone/themes/current")"
+      backgrounds="$(run_selector "$root" backgrounds-json)"
+      test "$(printf '%s' "$backgrounds" | ${pkgs.jq}/bin/jq -r .theme)" = tokyo-night
+      test "$(printf '%s' "$backgrounds" | ${pkgs.jq}/bin/jq -r '[.backgrounds[].path] | join(",")')" = backgrounds/a.jpg,backgrounds/b.jpg
+      test "$(printf '%s' "$backgrounds" | ${pkgs.jq}/bin/jq -r '.backgrounds[] | select(.current) | .path')" = backgrounds/a.jpg
+      run_selector "$root" select-background backgrounds/b.jpg
+      test "$(jq -r .background "$current/.keystone-theme.json")" = backgrounds/b.jpg
+      if run_selector "$root" select-background backgrounds/missing.jpg; then
+        echo "FAIL: accepted a missing background" >&2
+        exit 1
+      fi
+      if run_selector "$root" select-background backgrounds/../btop.theme; then
+        echo "FAIL: accepted a background path outside backgrounds/" >&2
+        exit 1
+      fi
+      test "$(jq -r .background "$current/.keystone-theme.json")" = backgrounds/b.jpg
+
       echo "TEST refresh"
       run_selector "$root" refresh
         refreshed="$(readlink -f "$root/state/keystone/themes/current")"
         test "$refreshed" != "$current"
-      test "$(jq -r .background "$refreshed/.keystone-theme.json")" = backgrounds/a.jpg
+      test "$(jq -r .background "$refreshed/.keystone-theme.json")" = backgrounds/b.jpg
 
       echo "TEST dangling selection reconciliation"
       rm -f "$root/state/keystone/themes/current"
