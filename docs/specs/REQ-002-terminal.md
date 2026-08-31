@@ -24,16 +24,47 @@
 
 - **REQ-002.9** `keystone.terminal.theme.name` MUST select the default theme.
 - **REQ-002.10** Every terminal theme MUST contain `zellij.kdl`,
-  `helix.toml`, `btop.theme`, and `lazygit.yml`.
+  `helix.toml`, `btop.theme`, and `lazygit.yml`. A catalog MUST NOT provide the
+  selector-reserved `.keystone-theme.json` metadata path.
 - **REQ-002.11** A switch MUST validate all terminal and extension-required
   paths before it changes `~/.config/themes/current`.
 - **REQ-002.12** Activation MUST preserve a valid runtime selection. It MUST
-  repair an absent, dangling, or stale terminal adapter.
+  repair an absent, dangling, or stale terminal adapter. A valid generation
+  whose catalog theme is absent MUST remain the rollback anchor until its
+  replacement succeeds. A failed first activation MUST remove adapter links.
 - **REQ-002.13** The selector MUST update the Zellij, Helix, btop, and Lazygit
   adapters without a Nix rebuild.
 - **REQ-002.14** A desktop product MAY append required paths and post-switch
-  hooks. It MUST use the terminal selector.
+  hooks. It MUST use the terminal selector. Post-switch hooks MUST receive
+  empty standard input from `/dev/null`. The selector MUST validate every
+  configured post-switch hook executable before committing activation.
 - **REQ-002.15** The theme contract MUST work on a headless host.
+- **REQ-002.16** `keystone.terminal.theme.renderHooks` MUST run each
+  `bin/keystone-theme-render THEME GENERATION` sequentially in configured list
+  order after catalog composition and before validation or activation. Copied
+  files in the staged generation MUST be owner-writable. Each renderer MUST
+  receive empty standard input from `/dev/null`, and its standard output MUST be
+  forwarded to standard error as diagnostics. A renderer MUST NOT create the
+  selector-reserved `.keystone-theme.json` metadata path, symbolic link, or
+  multiply linked file in the staged generation. The selector MUST enforce
+  those prohibitions after each renderer and before the next renderer runs. A
+  renderer failure MUST discard the staged generation and preserve the active
+  generation.
+- **REQ-002.17** The selector MUST remove failed staged and activation
+  generations. Successful activation MUST promote hidden staging to a visible
+  generation, and the selector MUST NOT automatically prune successful
+  generations. An identical refresh or reconciliation MUST discard its staged
+  duplicate and retain the current generation. `keystone-theme-switch --gc`
+  MUST deterministically list only visible, non-current candidates and MUST NOT
+  modify the filesystem. It MUST exclude a visible generation paired with a
+  valid reservation whose writer PID is live. It MUST also conservatively
+  exclude malformed, unreadable, or otherwise unknown reservations. It MUST
+  treat a valid reservation whose writer PID is provably dead as stale and MUST
+  list its visible, non-current generation. With no current selection, it MUST
+  list all other visible generations; it MUST reject a dangling current
+  selection. Because it cannot prove the absence of external references, an
+  operator MUST verify a candidate is unreferenced before manually removing its
+  exact path and any paired dead-writer reservation.
 
 Cohesive terminal-based development environment with modern tools, configured
 through a single Home Manager flake output.

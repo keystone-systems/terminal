@@ -180,6 +180,50 @@
             ];
           };
           selector = pkgs.keystone-terminal.theme-selector;
+          wrapperRenderHook = pkgs.writeShellApplication {
+            name = "keystone-theme-render";
+            text = ''
+              printf '%s\n' "$1" > "$2/wrapper-rendered"
+            '';
+          };
+          wrapperCatalog = pkgs.runCommand "terminal-theme-wrapper-catalog" { } ''
+            mkdir -p "$out"
+            cp -R ${./templates/themes/.config/themes}/tokyo-night "$out/"
+          '';
+          wrapperHomeDirectory = "/build/terminal-theme-wrapper";
+          wrapperHome = home-manager.lib.homeManagerConfiguration {
+            inherit pkgs;
+            modules = [
+              self.homeModules.default
+              {
+                home.username = "theme-wrapper-test";
+                home.homeDirectory = wrapperHomeDirectory;
+                home.stateVersion = "24.11";
+                keystone.terminal = {
+                  enable = true;
+                  ai.enable = false;
+                  git.enable = false;
+                  sandbox.enable = false;
+                  theme = {
+                    catalogs = [
+                      {
+                        name = "wrapper";
+                        path = wrapperCatalog;
+                      }
+                    ];
+                    renderHooks = [ wrapperRenderHook ];
+                    requiredPaths = [ "wrapper-rendered" ];
+                  };
+                };
+              }
+            ];
+          };
+          themeSwitch = lib.findFirst (
+            package: lib.getName package == "keystone-theme-switch"
+          ) (throw "keystone-theme-switch is missing from home.packages") wrapperHome.config.home.packages;
+          themeActivation = pkgs.writeText "terminal-theme-activation" (
+            wrapperHome.config.home.activation.keystoneTerminalTheme.data
+          );
         in
         {
           theme-contract = pkgs.runCommand "terminal-theme-contract" { } ''
@@ -197,11 +241,21 @@
             done
             touch $out
           '';
-          theme-selector = import ./tests/theme-selector.nix {
-            inherit pkgs selector;
-            inherit (home.config.keystone.terminal.theme) adapters requiredPaths;
-            configHome = home.config.xdg.configHome;
-          };
+        }
+        // lib.optionalAttrs pkgs.stdenv.isLinux {
+          theme-selector =
+            assert wrapperHome.config.home.homeDirectory == wrapperHomeDirectory;
+            import ./tests/theme-selector.nix {
+              inherit
+                pkgs
+                selector
+                themeSwitch
+                themeActivation
+                wrapperHomeDirectory
+                ;
+              inherit (home.config.keystone.terminal.theme) adapters requiredPaths;
+              configHome = home.config.xdg.configHome;
+            };
         }
         // lib.optionalAttrs (system == "x86_64-linux") {
           home-standalone = home.activationPackage;

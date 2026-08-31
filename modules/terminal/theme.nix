@@ -16,6 +16,7 @@ let
     catalog: "${catalog.name}\t${toString catalog.path}"
   ) themeCfg.catalogs;
   hooks = lib.concatStringsSep "\n" (map toString themeCfg.postSwitchHooks);
+  renderHooks = lib.concatStringsSep "\n" (map toString themeCfg.renderHooks);
   selector = pkgs.keystone-terminal.theme-selector;
   switch = pkgs.writeShellApplication {
     name = "keystone-theme-switch";
@@ -26,6 +27,7 @@ let
       export KEYSTONE_THEME_REQUIRED_PATHS="${requiredPaths}"
       export KEYSTONE_THEME_ADAPTERS="${adapters}"
       export KEYSTONE_THEME_HOOKS="${hooks}"
+      export KEYSTONE_THEME_RENDER_HOOKS="${renderHooks}"
 
       case "$#:$*" in
         "0:")
@@ -36,13 +38,14 @@ let
         "2:--list --json") ${selector}/bin/keystone-theme-selector list-json ;;
         "1:--current") ${selector}/bin/keystone-theme-selector current ;;
         "1:--refresh") ${selector}/bin/keystone-theme-selector refresh ;;
+        "1:--gc") ${selector}/bin/keystone-theme-selector gc ;;
         1:*)
           ${selector}/bin/keystone-theme-selector select "$1"
           echo "Switched to theme: $1"
           ;;
         "2:--backgrounds --json") ${selector}/bin/keystone-theme-selector backgrounds-json ;;
         "2:--background "*) ${selector}/bin/keystone-theme-selector select-background "$2" ;;
-        *) echo "Usage: keystone-theme-switch [--list --json|--backgrounds --json|--background PATH|--current|--refresh|<theme-name>]" >&2; exit 2 ;;
+        *) echo "Usage: keystone-theme-switch [--list --json|--backgrounds --json|--background PATH|--current|--refresh|--gc|<theme-name>]" >&2; exit 2 ;;
       esac
     '';
   };
@@ -91,7 +94,12 @@ in
     postSwitchHooks = mkOption {
       type = types.listOf types.package;
       default = [ ];
-      description = "Packages that provide bin/keystone-theme-hook.";
+      description = "Packages that provide bin/keystone-theme-hook, run with empty standard input.";
+    };
+    renderHooks = mkOption {
+      type = types.listOf types.package;
+      default = [ ];
+      description = "Packages providing bin/keystone-theme-render, run sequentially in list order against owner-writable staged generations before validation and activation. Renderers receive /dev/null as standard input, have standard output forwarded to standard error, and must not create .keystone-theme.json, symbolic links, or multiply linked files.";
     };
   };
 
@@ -126,6 +134,7 @@ in
         KEYSTONE_THEME_REQUIRED_PATHS="${requiredPaths}" \
         KEYSTONE_THEME_ADAPTERS="${adapters}" \
         KEYSTONE_THEME_HOOKS="${hooks}" \
+        KEYSTONE_THEME_RENDER_HOOKS="${renderHooks}" \
         ${selector}/bin/keystone-theme-selector reconcile "${themeCfg.name}"
     '';
   };
