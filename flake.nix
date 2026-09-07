@@ -22,7 +22,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     comodoro = {
-      url = "github:pimalaya/comodoro/b70b3605acc358e0d9cb57525adba9c05fc53f3d";
+      url = "github:pimalaya/comodoro/bb4cfc0904f7a4c9db91bb98438b5ebdcdbae3e7";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     llm-agents = {
