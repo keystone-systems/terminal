@@ -12,9 +12,15 @@ let
   adapters = lib.concatMapStringsSep "\n" (
     adapter: "${adapter.source}\t${adapter.target}"
   ) themeCfg.adapters;
-  catalogs = lib.concatMapStringsSep "\n" (
-    catalog: "${catalog.name}\t${toString catalog.path}"
-  ) themeCfg.catalogs;
+  catalogBundle = pkgs.linkFarm "keystone-theme-catalogs" (
+    lib.imap0 (index: catalog: {
+      name = toString index;
+      inherit (catalog) path;
+    }) themeCfg.catalogs
+  );
+  catalogs = lib.concatStringsSep "\n" (
+    lib.imap0 (index: catalog: "${catalog.name}\t${catalogBundle}/${toString index}") themeCfg.catalogs
+  );
   hooks = lib.concatStringsSep "\n" (map toString themeCfg.postSwitchHooks);
   renderHooks = lib.concatStringsSep "\n" (map toString themeCfg.renderHooks);
   selector = pkgs.keystone-terminal.theme-selector;

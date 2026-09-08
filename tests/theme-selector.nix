@@ -1019,6 +1019,8 @@ pkgs.runCommand "terminal-theme-selector"
       test -n "$reconcile_line"
       test "$render_export_line" -lt "$reconcile_line"
       grep -Fq 'KEYSTONE_THEME_RENDER_HOOKS="/nix/store/' ${themeActivation}
+      grep -Fq -- '-keystone-theme-catalogs/0' ${themeActivation}
+      grep -Fq -- '-keystone-theme-catalogs/0' ${themeSwitch}/bin/keystone-theme-switch
 
         touch "$out"
   ''
