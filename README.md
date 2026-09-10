@@ -1,8 +1,8 @@
 # Keystone Terminal
 
 Keystone Terminal is a standalone Home Manager product for Linux and macOS.
-It installs terminal dependencies and generated runtime wiring. It also ships
-starter files that a user copies into a Stow-managed dotfiles repository.
+It installs terminal dependencies and generated runtime wiring, then manages
+an editable Stow-based dotfiles checkout.
 
 ```nix
 inputs.terminal.url = "git+ssh://forgejo@git.ncrmro.com:2222/ks.systems/terminal.git";
@@ -11,14 +11,23 @@ inputs.terminal.url = "git+ssh://forgejo@git.ncrmro.com:2222/ks.systems/terminal
 Import `terminal.homeModules.default`, apply `terminal.overlays.default`, and
 set `keystone.terminal.enable = true`.
 
-Seed editable defaults once:
+Enable the dotfiles integration:
 
-```sh
-nix run .#seed-dotfiles -- ~/repos/$USER/dotfiles/packages
+```nix
+keystone.terminal.dotfiles.enable = true;
 ```
 
-The seed command MUST NOT overwrite an existing file unless the caller passes
-`--force`. Nix MUST NOT own a seeded file after the copy.
+That option is the complete first-boot action. When `repoPath` is absent,
+Home Manager copies the release-pinned templates into a writable checkout,
+initializes a local Git repository, and stows the selected packages. When
+`repoPath` already exists, Home Manager does not add or overwrite files; it
+only validates and restows the selected packages. Set
+`keystone.terminal.dotfiles.bootstrap.enable = false` when an external
+provisioner must supply the checkout.
+
+`seed-dotfiles` remains available as an explicit maintenance tool. It
+preserves existing files unless the caller passes `--force`; normal users do
+not need to run it.
 
 ## Layered themes
 
