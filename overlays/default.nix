@@ -22,6 +22,11 @@ in
 {
   keystone-terminal = {
     inherit (pim) himalaya calendula cardamum;
+
+    dotfile-templates = final.runCommand "keystone-terminal-dotfile-templates" { } ''
+      cp -r ${../templates}/. $out
+    '';
+
     comodoro =
       if final.stdenv.isLinux then
         pim.comodoro.overrideAttrs (old: {

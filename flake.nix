@@ -108,12 +108,9 @@
             inherit system;
             overlays = [ self.overlays.default ];
           };
-          dotfileTemplates = pkgs.runCommand "keystone-terminal-dotfile-templates" { } ''
-            cp -r ${./templates}/. $out
-          '';
         in
         {
-          dotfile-templates = dotfileTemplates;
+          dotfile-templates = pkgs.keystone-terminal.dotfile-templates;
           seed-dotfiles = pkgs.writeShellApplication {
             name = "seed-dotfiles";
             runtimeInputs = [
@@ -137,7 +134,7 @@
               if [ -z "$target" ]; then usage; exit 2; fi
 
               mkdir -p "$target"
-              cd ${dotfileTemplates}
+              cd ${pkgs.keystone-terminal.dotfile-templates}
               find . -type f -print0 | while IFS= read -r -d "" source; do
                 relative="''${source#./}"
                 destination="$target/$relative"

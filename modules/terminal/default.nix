@@ -46,6 +46,7 @@ in
     ../shared/update.nix
     ../shared/password-managers.nix
     ./shell.nix
+    ./dotfiles.nix
     ./zide.nix
     ./editor.nix
     ./conventions.nix
