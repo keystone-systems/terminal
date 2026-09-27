@@ -223,6 +223,9 @@
           );
         in
         {
+          terminal-hardware-key = import ./tests/module/hardware-key.nix {
+            inherit pkgs home-manager;
+          };
           theme-contract = pkgs.runCommand "terminal-theme-contract" { } ''
             for theme in ${lib.concatStringsSep " " themeNames}; do
               root=${./templates/themes/.config/themes}/"$theme"

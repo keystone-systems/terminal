@@ -52,6 +52,7 @@ in
     ./conventions.nix
     ./agents
     ./age-yubikey.nix
+    ./hardware-key.nix
     ./devtools.nix
     ./mail.nix
     ./calendar.nix

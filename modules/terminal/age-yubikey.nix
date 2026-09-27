@@ -73,12 +73,14 @@ in
 
     home.sessionVariables = {
       AGE_IDENTITIES_FILE = cfg.identityPath;
+      SOPS_AGE_KEY_FILE = cfg.identityPath;
     };
 
     home.packages = with pkgs; [
       sops
       ssh-to-age
       age-plugin-yubikey
+      yubikey-manager
     ];
   };
 }
