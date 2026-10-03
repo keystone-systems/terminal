@@ -98,3 +98,19 @@ candidate=/exact/verified/generation-candidate
 rm -rf -- "$candidate"
 rm -f -- "$(dirname "$candidate")/.${candidate##*/}.reserve"
 ```
+
+The shared `ks-stow-dotfiles --repo PATH --target HOME [--check] PACKAGE...`
+command validates selected packages with Stow simulation before applying them.
+It uses `--no-folding`, preserves existing files on conflicts, and never searches
+home directories for stale links. `--check` is read-only. The configured
+`keystone.terminal.dotfiles.checkPackage` exposes `keystone-check-dotfiles` for
+system deployment; optional `dotfiles.source` compares selected packages against
+a locked repository during this check. Activation continues using editable files.
+A missing checkout is checked against the bootstrap template without creating it;
+normal activation atomically initializes the checkout as before.
+
+When deleting or renaming a source file, include an explicit migration for its
+exact former destination. Remove it only if it is still a symlink into your
+dotfiles repository. Do not recursively search `.config`, `.local/share`, or the
+home directory. Existing folded Stow directory links should be explicitly
+unstowed with the old package before migrating to the no-folding layout.

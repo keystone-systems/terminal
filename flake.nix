@@ -110,6 +110,7 @@
           };
         in
         {
+          stow-dotfiles = pkgs.keystone-terminal.stow-dotfiles;
           dotfile-templates = pkgs.keystone-terminal.dotfile-templates;
           seed-dotfiles = pkgs.writeShellApplication {
             name = "seed-dotfiles";
@@ -223,6 +224,7 @@
           );
         in
         {
+          stow-dotfiles = import ./tests/stow-dotfiles.nix { inherit pkgs; };
           terminal-hardware-key = import ./tests/module/hardware-key.nix {
             inherit pkgs home-manager;
           };
@@ -258,6 +260,7 @@
             };
         }
         // lib.optionalAttrs (system == "x86_64-linux") {
+          dotfiles-bootstrap = import ./tests/module/dotfiles.nix { inherit pkgs home-manager self; };
           home-standalone = home.activationPackage;
           terminal-zide = import ./tests/module/terminal-zide.nix {
             inherit
