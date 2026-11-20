@@ -12,10 +12,36 @@ final: prev:
 let
   system = final.stdenv.hostPlatform.system;
   craneLib = crane.mkLib final;
+  withCalendarTaskLibraries =
+    name: package:
+    package.overrideAttrs (old: {
+      buildInputs = (old.buildInputs or [ ]) ++ [
+        final.libgit2
+        final.sqlite
+      ];
+      preBuild =
+        (old.preBuild or "")
+        + final.lib.optionalString final.stdenv.buildPlatform.isLinux ''
+          export LD_LIBRARY_PATH="${
+            final.lib.makeLibraryPath [
+              final.buildPackages.libgit2
+              final.buildPackages.sqlite
+            ]
+          }:''${LD_LIBRARY_PATH:-}"
+        '';
+      nativeBuildInputs =
+        (old.nativeBuildInputs or [ ])
+        ++ final.lib.optional final.stdenv.hostPlatform.isLinux final.buildPackages.patchelf;
+      postFixup =
+        (old.postFixup or "")
+        + final.lib.optionalString final.stdenv.hostPlatform.isLinux ''
+          patchelf --add-rpath "${final.lib.makeLibraryPath [ final.sqlite ]}" "$out/bin/${name}"
+        '';
+    });
   pim = {
     himalaya = himalaya.packages.${system}.default;
-    calendula = calendula.packages.${system}.default;
-    cardamum = cardamum.packages.${system}.default;
+    calendula = withCalendarTaskLibraries "calendula" calendula.packages.${system}.default;
+    cardamum = withCalendarTaskLibraries "cardamum" cardamum.packages.${system}.default;
     comodoro = comodoro.packages.${system}.default;
   };
 in
@@ -31,7 +57,15 @@ in
       if final.stdenv.isLinux then
         pim.comodoro.overrideAttrs (old: {
           nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ final.makeWrapper ];
-          buildInputs = (old.buildInputs or [ ]) ++ [ final.dbus ];
+          buildInputs = (old.buildInputs or [ ]) ++ [
+            final.dbus
+            final.libgit2
+          ];
+          preBuild = (old.preBuild or "") + ''
+            export LD_LIBRARY_PATH="${
+              final.lib.makeLibraryPath [ final.buildPackages.libgit2 ]
+            }:''${LD_LIBRARY_PATH:-}"
+          '';
           preInstall = (old.preInstall or "") + ''
             export LD_LIBRARY_PATH="${final.lib.makeLibraryPath [ final.dbus ]}:''${LD_LIBRARY_PATH:-}"
           '';
