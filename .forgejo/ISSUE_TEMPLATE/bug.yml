@@ -1,0 +1,16 @@
+name: Bug report
+about: Report unexpected behavior.
+title: "fix: "
+body:
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true

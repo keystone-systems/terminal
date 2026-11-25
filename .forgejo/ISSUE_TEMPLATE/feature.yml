@@ -1,0 +1,16 @@
+name: Feature request
+about: Propose a change to this repository.
+title: "feat: "
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: What would you like to do?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: How can we verify it works?
+    validations:
+      required: true
