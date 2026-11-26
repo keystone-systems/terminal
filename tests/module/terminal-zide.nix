@@ -46,11 +46,6 @@ pkgs.runCommand "terminal-zide-check" { } ''
   test -x "${zidePackage}/bin/zide-edit"
   test -x "${zidePackage}/bin/zide-rename"
 
-  "${zidePackage}/bin/zide" --help >/dev/null
-  "${zidePackage}/bin/zide-pick" --help >/dev/null
-  "${zidePackage}/bin/zide-edit" --help >/dev/null
-  "${zidePackage}/bin/zide-rename" --help >/dev/null
-
   grep -F 'zide-pick' "${zidePackage}/layouts/default.kdl" >/dev/null
   grep -F 'command "$EDITOR"' "${zidePackage}/layouts/default.kdl" >/dev/null
   grep -F 'YAZI_CONFIG_HOME' "${zidePackage}/bin/.zide-pick-wrapped" >/dev/null

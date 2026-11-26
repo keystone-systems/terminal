@@ -1,0 +1,20 @@
+name: Verify Terminal
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    if: forgejo.event_name != 'pull_request' || forgejo.event.pull_request.head.repo.full_name == forgejo.repository
+    runs-on: native
+    timeout-minutes: 20
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          github-server-url: https://git.ncrmro.com
+          persist-credentials: false
+      - name: Verify native Terminal contracts
+        run: time bash tests/native-ci.sh
